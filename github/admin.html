@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fake or Fact? Control</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#0d0f14;--card:#171a22;--line:#2a2f3b;--ink:#f2f4f8;--mute:#9aa3b5;--accent:#ffd23f;--ok:#2fa36b;--bad:#e5484d}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px 40px}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line)}
+.logo{font-weight:900;font-size:22px}.logo b{color:var(--accent)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button,.b{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer}
+nav button.on,.b.y{background:var(--accent);color:#000;border-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin:16px 0}
+.code{font-size:min(18vw,140px);font-weight:900;letter-spacing:.12em;color:var(--accent);line-height:1;text-align:center}
+.mute{color:var(--mute)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:center}
+th{color:var(--mute);font-weight:600;font-size:14px}
+td.t{text-align:left;font-weight:900}
+.dot{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+.qrs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.qr{background:#fff;color:#000;border-radius:14px;padding:14px;text-align:center}
+.qr .box{display:flex;justify-content:center;margin:8px 0}
+.qr a{font-size:11px;word-break:break-all;color:#333}
+.board td{font-size:clamp(18px,2.6vw,34px);padding:14px 8px}
+.board th{font-size:clamp(13px,1.4vw,18px)}
+.board tr.first td{background:rgba(255,210,63,.08)}
+.ok{color:var(--ok);font-weight:900}.bad{color:var(--bad);font-weight:900}
+.pts{font-size:1.4em;font-weight:900;color:var(--accent)}
+.live{font-size:13px;color:var(--mute)}.live i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--mute);margin-right:6px}
+.live.on i{background:var(--ok)}.live.off i{background:var(--bad)}
+.timer{font-size:min(30vw,260px);font-weight:900;text-align:center;font-variant-numeric:tabular-nums;line-height:1}
+.timer.low{color:var(--bad)}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.script p{font-size:22px;line-height:1.5;margin:10px 0}
+.script .cue{color:var(--mute);font-size:15px;text-transform:uppercase;letter-spacing:1px;margin-top:22px}
+input,select{background:#0f1218;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+input[type=number]{width:70px}
+.hidden{display:none}
+.feed{font-size:13px;color:var(--mute);max-height:200px;overflow:auto;font-family:ui-monospace,monospace}
+@media print{header,nav,.noprint{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo">FAKE <b>or</b> FACT? <span class="mute" style="font-size:14px">control</span></div>
+  <nav id="nav">
+    <button data-v="setup">Setup</button>
+    <button data-v="board">Scoreboard</button>
+    <button data-v="timer">Timer</button>
+    <button data-v="script">Host script</button>
+    <button id="fs">Full screen</button>
+  </nav>
+</header>
+<main id="app"></main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="common.js"></script>
+<script>
+'use strict';
+const F = window.FOF;
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const KEY = 'fof_admin';
+let A = load() || {};
+function load() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(A)); } catch (e) {} }
+
+/* live data: per team */
+let LIVE = {}, liveState = 'off', sub = null, feed = [];
+function resetLive() { LIVE = {}; F.TEAMS.forEach(t => LIVE[t] = { joined: false, st: {}, final: null }); feed = []; }
+resetLive();
+
+function connect() {
+  if (sub) sub.close();
+  resetLive();
+  if (!A.code) return;
+  sub = F.listen(A.code, m => {
+    if (!m || !F.TEAMS.includes(m.team)) return;
+    const L = LIVE[m.team];
+    if (m.type === 'join') L.joined = true;
+    if (m.type === 'station' && F.ST_KEYS.includes(m.st)) { L.joined = true; L.st[m.st] = { ok: !!m.ok, sc: +m.sc }; }
+    if (m.type === 'final') { L.joined = true; L.final = { phrase: !!m.phrase, q: +m.q, secs: +m.secs }; }
+    feed.unshift(new Date(m.ts || Date.now()).toLocaleTimeString() + '  ' + m.team + '  ' + m.type + (m.st ? ' ' + m.st + ' ' + m.sc : '') + (m.type === 'final' ? ` phrase:${m.phrase} q:${m.q} t:${m.secs}s` : ''));
+    if (m.type !== 'join' && view === 'board') F.sfx.ok();
+    if (view === 'board') render();
+    const fd = document.querySelector('.feed'); if (fd) fd.innerHTML = feed.join('<br>');
+  }, s => { liveState = s; const el = $('#live'); if (el) paintLive(el); });
+}
+function paintLive(el) {
+  el.className = 'live ' + (liveState === 'live' ? 'on' : 'off');
+  el.innerHTML = `<i></i>${liveState === 'live' ? 'Live scoreboard connected' : 'Reconnecting... manual entry still works'}`;
+}
+
+/* merged score: manual overrides win */
+function merged(t) {
+  const L = LIVE[t], M = (A.manual || {})[t] || {};
+  const st = {};
+  F.ST_KEYS.forEach(k => {
+    const m = M[k];
+    st[k] = m === 'ok' ? { ok: true, man: 1 } : m === 'bad' ? { ok: false, man: 1 } : L.st[k] || null;
+  });
+  const fin = Object.assign({}, L.final || {});
+  if (M.phrase === 'ok') fin.phrase = true; if (M.phrase === 'bad') fin.phrase = false;
+  if (M.q !== '' && M.q != null) fin.q = +M.q;
+  if (M.secs !== '' && M.secs != null) fin.secs = +M.secs;
+  const has = L.final || M.phrase || (M.q !== '' && M.q != null);
+  const pts = F.ST_KEYS.reduce((a, k) => a + (st[k] && st[k].ok ? 10 : 0), 0) + (fin.phrase ? 10 : 0) + (fin.q || 0) * 2;
+  return { t, joined: L.joined, st, fin: has ? fin : null, pts };
+}
+function ranking() {
+  return F.TEAMS.map(merged).sort((a, b) => b.pts - a.pts || (a.fin && a.fin.secs != null ? a.fin.secs : 1e9) - (b.fin && b.fin.secs != null ? b.fin.secs : 1e9));
+}
+
+let view = 'setup';
+function go(v) { view = v; A.view = v; save(); document.querySelectorAll('#nav [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v)); render(); }
+document.querySelectorAll('#nav [data-v]').forEach(b => b.onclick = () => go(b.dataset.v));
+$('#fs').onclick = () => { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); };
+
+function baseUrl() {
+  if (A.base) return A.base.replace(/[^/]*$/, '');
+  return location.href.split(/[?#]/)[0].replace(/[^/]*$/, '');
+}
+function joinUrl(t) { return baseUrl() + 'index.html?c=' + A.code + (t ? '&t=' + t : ''); }
+
+function render() {
+  if (view === 'setup') return setup();
+  if (view === 'board') return board();
+  if (view === 'timer') return timer();
+  if (view === 'script') return script();
+}
+
+/* ---------------- setup ---------------- */
+function setup() {
+  if (!A.code) {
+    app.innerHTML = `<div class="card" style="text-align:center"><h1>New game</h1><p class="mute">Creates a code with a random rotation draw (12 possible).</p><button class="b y" id="new">Draw and create game</button></div>`;
+    $('#new').onclick = () => { A = { code: F.newCode(), view: 'setup', manual: {} }; save(); connect(); render(); };
+    return;
+  }
+  const p = F.parseCode(A.code), pl = F.plan(p.draw);
+  app.innerHTML = `
+  <div class="card"><div class="mute" style="text-align:center">Game code · draw ${p.draw}</div><div class="code">${A.code}</div>
+    <p style="text-align:center" class="mute">Students: scan your team QR, or open <b>${baseUrl()}</b> and type the code.</p>
+    <p style="text-align:center" id="live" class="live"></p></div>
+  <div class="card"><h2 style="margin-top:0">Rotation</h2><table><tr><th></th>${[1, 2, 3].map(r => `<th>Round ${r}</th>`).join('')}</tr>
+    ${F.TEAMS.map(t => `<tr><td class="t"><span class="dot" style="background:${F.TEAM_COLOR[t]}"></span>${t}</td>${pl[t].map(k => `<td><b>${k}</b> · ${F.STATIONS[k].room}</td>`).join('')}</tr>`).join('')}
+    </table><p class="mute">Final: everyone back to ${F.FINAL_ROOM}. Clue words: A ${F.STATIONS.A.clue} · B ${F.STATIONS.B.clue} · C ${F.STATIONS.C.clue}</p></div>
+  <div class="qrs">${F.TEAMS.map(t => `<div class="qr"><b style="font-size:22px;color:${F.TEAM_COLOR[t]}">${t}</b><div class="box" id="qr-${t}"></div><a href="${joinUrl(t)}" target="_blank">${joinUrl(t)}</a></div>`).join('')}</div>
+  <div class="card noprint"><h2 style="margin-top:0">Manual results</h2><p class="mute">Use only if a phone fails. Manual values replace live values.</p>
+    <table><tr><th></th>${F.ST_KEYS.map(k => `<th>Station ${k}</th>`).join('')}<th>Phrase</th><th>Questions</th><th>Final time (s)</th></tr>
+    ${F.TEAMS.map(t => { const M = (A.manual || {})[t] || {}; const sel = (f) => `<select data-t="${t}" data-f="${f}"><option value="">auto</option><option value="ok" ${M[f] === 'ok' ? 'selected' : ''}>✓</option><option value="bad" ${M[f] === 'bad' ? 'selected' : ''}>✗</option></select>`;
+      return `<tr><td class="t">${t}</td>${F.ST_KEYS.map(k => `<td>${sel(k)}</td>`).join('')}<td>${sel('phrase')}</td><td><input type="number" min="0" max="5" data-t="${t}" data-f="q" value="${M.q ?? ''}"></td><td><input type="number" min="0" data-t="${t}" data-f="secs" value="${M.secs ?? ''}"></td></tr>`; }).join('')}
+    </table></div>
+  <div class="card noprint"><h2 style="margin-top:0">Options</h2>
+    <p class="mute">Public link of the student page (only if this page is not on the same site):</p>
+    <input id="base" style="width:100%" placeholder="${location.href.split(/[?#]/)[0].replace(/[^/]*$/, '')}index.html" value="${A.base || ''}">
+    <div class="row" style="justify-content:flex-start;margin-top:12px"><button class="b" id="print">Print QR</button><button class="b" id="reset">New game (new code)</button></div>
+    <h3>Received messages</h3><div class="feed">${feed.join('<br>') || 'Nothing yet'}</div></div>`;
+  paintLive($('#live'));
+  if (window.QRCode) F.TEAMS.forEach(t => new QRCode($('#qr-' + t), { text: joinUrl(t), width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M }));
+  else F.TEAMS.forEach(t => $('#qr-' + t).textContent = 'QR library offline');
+  app.querySelectorAll('[data-f]').forEach(el => el.onchange = () => {
+    A.manual = A.manual || {}; (A.manual[el.dataset.t] = A.manual[el.dataset.t] || {})[el.dataset.f] = el.value; save();
+  });
+  $('#base').onchange = e => { A.base = e.target.value.trim(); save(); render(); };
+  $('#print').onclick = () => window.print();
+  $('#reset').onclick = () => { if (confirm('Create a new game? The current scoreboard will be cleared.')) { A = { view: 'setup', manual: {}, base: A.base }; save(); connect(); render(); } };
+}
+
+/* ---------------- scoreboard ---------------- */
+function board() {
+  if (!A.code) return go('setup');
+  const R = ranking(), anyFinal = R.some(r => r.fin);
+  const mark = s => !s ? '<span class="mute">·</span>' : s.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>';
+  app.innerHTML = `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h1 style="margin:0">Scoreboard</h1><span id="live" class="live"></span><span class="mute">Code <b style="color:var(--accent)">${A.code}</b></span></div>
+  <table class="board"><tr><th>#</th><th style="text-align:left">Team</th><th>A<br>Deepfake</th><th>B<br>Mis/Dis</th><th>C<br>Words</th><th>Phrase</th><th>Questions</th><th>Time</th><th>Points</th></tr>
+  ${R.map((r, i) => `<tr class="${anyFinal && i === 0 ? 'first' : ''}"><td>${anyFinal ? (i === 0 ? '🏆' : i + 1) : ''}</td><td class="t"><span class="dot" style="background:${F.TEAM_COLOR[r.t]}"></span>${r.t}${r.joined ? '' : ' <span class="mute" style="font-size:.5em">waiting</span>'}</td>
+    ${F.ST_KEYS.map(k => `<td>${mark(r.st[k])}</td>`).join('')}
+    <td>${r.fin ? (r.fin.phrase ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>') : '<span class="mute">·</span>'}</td>
+    <td>${r.fin && r.fin.q != null ? r.fin.q + '/5' : '<span class="mute">·</span>'}</td>
+    <td>${r.fin && r.fin.secs != null ? r.fin.secs + ' s' : '<span class="mute">·</span>'}</td>
+    <td class="pts">${r.pts}</td></tr>`).join('')}
+  </table><p class="mute" style="margin-bottom:0">10 per station · 10 phrase · 2 per question · max 50. Tie: lower final time wins.</p></div>`;
+  paintLive($('#live'));
+}
+
+/* ---------------- timer ---------------- */
+let tInt = null;
+function timer() {
+  A.tm = A.tm || { left: F.STATION_SECONDS, run: false, at: 0 };
+  const T = A.tm;
+  const left = () => T.run ? Math.max(0, T.left - (Date.now() - T.at) / 1000) : T.left;
+  app.innerHTML = `<div class="card" style="text-align:center"><div class="mute">Station time</div><div class="timer" id="tv">3:00</div>
+    <div class="row noprint"><button class="b y" id="ss">Start</button><button class="b" id="rs">Reset 3:00</button><button class="b" id="r2">Travel 2:00</button></div></div>`;
+  clearInterval(tInt);
+  let alarmed = false;
+  const paint = () => {
+    const l = Math.ceil(left()), el = $('#tv'); if (!el) return clearInterval(tInt);
+    el.textContent = Math.floor(l / 60) + ':' + String(l % 60).padStart(2, '0');
+    el.classList.toggle('low', l <= 30);
+    $('#ss').textContent = T.run ? 'Pause' : 'Start';
+    if (l === 0 && T.run && !alarmed) { alarmed = true; F.sfx.alarm(); T.run = false; T.left = 0; save(); }
+  };
+  $('#ss').onclick = () => { if (T.run) { T.left = left(); T.run = false; } else { T.at = Date.now(); T.run = true; alarmed = false; } save(); paint(); };
+  $('#rs').onclick = () => { T.left = F.STATION_SECONDS; T.run = false; save(); paint(); };
+  $('#r2').onclick = () => { T.left = 120; T.run = false; save(); paint(); };
+  paint(); tInt = setInterval(paint, 250);
+}
+
+/* ---------------- host script ---------------- */
+function script() {
+  app.innerHTML = `<div class="card script">
+  <div class="cue">Icebreaker · 2 min · play video on the TV</div>
+  <p><a class="b y" style="display:inline-block;text-decoration:none" href="https://www.youtube.com/watch?v=cQ54GDm1eL0" target="_blank" rel="noopener">Open the Obama deepfake video</a></p>
+  <p>"Good morning everyone! Before we start, watch this short video."</p>
+  <div class="cue">After the video</div>
+  <p>"This was not Barack Obama. It was an actor's voice and an AI-edited face. Now think: if nobody told you it was fake, what would you believe about him?"</p>
+  <p>"Take ten seconds. Tell the person next to you."</p>
+  <div class="cue">Rules · 1 min</div>
+  <p>"Today you are fact-checkers. We have three teams: RED, BLUE and GREEN. Each team visits three rooms. You have three minutes in each room."</p>
+  <p>"If you pass a challenge, the host gives you a secret word. Keep it! At the end we meet back here, in room ${F.FINAL_ROOM}, for the final challenge."</p>
+  <p>"Scan the QR code of your team now. One phone per team is enough. The game code is <b style="color:var(--accent)">${A.code || '____'}</b>."</p>
+  <div class="cue">Final · in ${F.FINAL_ROOM}</div>
+  <p>"Welcome back! Put your three secret words in order, then answer five quick questions. Fast teams win ties."</p>
+  <div class="cue">Closing · 2 min</div>
+  <p>"The secret phrase was: THINK, VERIFY, SHARE. Think before you react. Verify the source. Only then, share."</p>
+  <p>"Misinformation is an honest mistake. Disinformation is a lie on purpose. Deepfakes make both easier. Your best tool is a pause."</p>
+  <p>"Congratulations to the winning team! Thank you very much."</p>
+  </div>`;
+}
+
+connect();
+go(A.view || 'setup');
+</script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fake or Fact?</title>
+<meta name="theme-color" content="#0d0f14">
+<style>
+:root{--bg:#0d0f14;--card:#171a22;--line:#2a2f3b;--ink:#f2f4f8;--mute:#9aa3b5;--accent:#ffd23f;--ok:#2fa36b;--bad:#e5484d;--team:#ffd23f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{min-height:100vh;padding:env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom))}
+.wrap{max-width:560px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.logo{font-weight:900;letter-spacing:.5px;font-size:20px}
+.logo b{color:var(--accent)}
+.pill{padding:4px 10px;border-radius:999px;font-weight:800;font-size:13px;background:var(--team);color:#000}
+h1{font-size:28px;margin:8px 0 4px;line-height:1.1}
+h2{font-size:20px;margin:18px 0 8px}
+p{margin:6px 0}
+.mute{color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+button,.btn{appearance:none;border:0;border-radius:14px;padding:14px 18px;font:inherit;font-weight:800;background:var(--accent);color:#000;width:100%;cursor:pointer;margin-top:10px}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.4}
+input[type=text]{width:100%;padding:14px;border-radius:12px;border:1px solid var(--line);background:#0f1218;color:var(--ink);font:inherit;font-size:22px;letter-spacing:6px;text-transform:uppercase;text-align:center;font-weight:800}
+.teams{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.teams button{margin:0;color:#fff;padding:18px 6px}
+.round{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.round:last-child{border:0}
+.badge{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:900;font-size:20px;background:#232837;flex:none}
+.badge.ok{background:var(--ok)}.badge.bad{background:var(--bad)}.badge.now{background:var(--accent);color:#000}
+.timer{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}
+.timer .t{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums}
+.timer .t.low{color:var(--bad);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.4}}
+.def{min-height:70vh;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.def .big{font-size:40px;font-weight:900;color:var(--accent);margin:10px 0}
+.def .count{font-size:64px;font-weight:900;font-variant-numeric:tabular-nums}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.choices.three{grid-template-columns:1fr 1fr 1fr}
+.choices button{margin:0;background:#232837;color:var(--ink);padding:12px 4px;font-size:14px}
+.choices button.sel{background:var(--accent);color:#000}
+.choices button.right{background:var(--ok);color:#fff}
+.choices button.wrong{background:var(--bad);color:#fff}
+audio,video{width:100%;margin-top:8px;border-radius:10px}
+.post img{width:100%;border-radius:10px;display:block;margin-top:8px}
+.who{font-size:14px;background:#0f1218;border-left:3px solid var(--accent);padding:8px 10px;border-radius:6px;margin-top:8px}
+.verdict{margin-top:10px;font-size:14px;padding:10px;border-radius:10px;background:#0f1218}
+.verdict.ok{border-left:4px solid var(--ok)}.verdict.bad{border-left:4px solid var(--bad)}
+.result{text-align:center;padding:28px 16px}
+.result .score{font-size:72px;font-weight:900;line-height:1}
+.result.pass .score{color:var(--ok)}.result.fail .score{color:var(--bad)}
+.cw{overflow:auto;margin:10px -16px;padding:0 16px}
+.grid{display:grid;gap:2px;margin:0 auto;width:max-content}
+.cell{width:var(--cs);height:var(--cs);position:relative}
+.cell.on{background:#f2f4f8;border-radius:3px}
+.cell.hl{background:#ffe98a}
+.cell.act{background:var(--accent)}
+.cell.good{background:#b6f0cf}
+.cell input{width:100%;height:100%;border:0;background:transparent;text-align:center;font-weight:800;font-size:calc(var(--cs)*.6);color:#000;text-transform:uppercase;padding:0;outline:none;caret-color:transparent}
+.cell .n{position:absolute;top:0;left:2px;font-size:9px;color:#333;pointer-events:none}
+.clues{font-size:14px}
+.clues div{padding:6px 8px;border-radius:8px;cursor:pointer}
+.clues div.act{background:#2a2f3b}
+.clues div.done{color:var(--ok);text-decoration:line-through}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slots input{font-size:16px;letter-spacing:2px;padding:12px 4px}
+.slots input.locked{border-color:var(--bad);color:var(--bad)}
+.sync{font-size:12px;color:var(--mute);text-align:center;margin-top:18px}
+.sync i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mute);margin-right:6px}
+.sync.sent i{background:var(--ok)}.sync.queued i{background:var(--accent)}
+.hidden{display:none}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="logo">FAKE <b>or</b> FACT?</div><div id="hdr"></div></header>
+  <main id="app"></main>
+  <div id="sync" class="sync hidden"><i></i><span></span></div>
+</div>
+<script src="common.js"></script>
+<script>
+'use strict';
+const F = window.FOF;
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------------- content ---------------- */
+const DEF = {
+  A: { word: 'DEEPFAKE', text: 'Audio, video or images made with AI to imitate a real person saying or doing things they never did.' },
+  B: { word: 'MIS vs DIS', text: '<b>Misinformation</b>: false content shared by mistake.<br><b>Disinformation</b>: false content created or shared on purpose to deceive.' },
+  C: { word: 'VOCABULARY', text: 'Ten key words to talk about fake content. Fill the crossword together.' }
+};
+const CLIPS = [
+  { src: 'clip1.mp3', a: 'real', why: 'Real. A genuine interview recording.', video: 'reveal1.mp4' },
+  { src: 'clip2.mp3', a: 'ai', why: 'AI. A cloned voice of Joe Biden used in a 2024 robocall telling New Hampshire voters not to vote.' },
+  { src: 'clip3.mp3', a: 'ai', why: 'AI. A deepfake of Elon Musk used to promote a crypto scam.', video: 'reveal3.mp4' },
+  { src: 'clip4.mp3', a: 'real', why: 'Real. A genuine Joe Biden speech.' }
+];
+const POSTS = [
+  { img: 'post1.jpg', claim: '"Elderly couple robbed and left half-naked during the Paris protests."',
+    who: 'Your classmate forwards it to the group chat, worried. She believes it is true.', a: 'mis',
+    why: 'The image is AI-generated: fact-checkers found AI watermarks and errors like a four-finger hand. Your classmate did not know, so sharing it is misinformation.' },
+  { img: 'post2.jpg', claim: '"Storm wall over the highway this afternoon."',
+    who: 'A driver posts the photo he took on his trip.', a: 'real',
+    why: 'Real photo. Some real images look fake; that alone does not make them false.' },
+  { img: 'post3.jpg', claim: '"María José Pizarro received 720 million pesos to approve the reforms."',
+    who: 'An anonymous political account posts it with insults and trending hashtags.', a: 'dis',
+    why: 'Fabricated. W Radio never published this card. It was made on purpose to attack a politician: disinformation.' },
+  { img: 'post4.jpg', claim: '"Supermarket in Venezuela, 2015."',
+    who: 'Your uncle shares it on Facebook. He saw it somewhere and believes it.', a: 'mis',
+    why: 'Real photo, false context: it was taken in Texas before a hurricane. Your uncle shared an error: misinformation.' },
+  { img: 'post5.jpg', claim: '"Morning ride along the canal."',
+    who: 'A cyclist posts a photo from her weekend route.', a: 'real',
+    why: 'Real photo. Strong colors and perfect lines can look like AI, but this one is genuine.' },
+  { img: 'post6.jpg', claim: '"Pope Francis endorses Donald Trump for President."',
+    who: 'A fake news website publishes it during the 2016 campaign to get clicks.', a: 'dis',
+    why: 'Invented story. The Pope never endorsed any candidate. Created on purpose for traffic: disinformation.' }
+];
+const QUIZ = [
+  { q: 'Disinformation is false content shared...', o: ['by mistake', 'on purpose to deceive', 'only by bots'], a: 1 },
+  { q: 'Your aunt shares a fake post believing it is true. That is...', o: ['Misinformation', 'Disinformation', 'Satire'], a: 0 },
+  { q: 'A real photo with a false caption is an example of...', o: ['Deepfake', 'False context', 'Parody'], a: 1 },
+  { q: 'First step before sharing a shocking post?', o: ['Share fast', 'Check the source', 'Read the comments'], a: 1 },
+  { q: 'A common clue of a cloned voice is...', o: ['Unnatural pauses and flat emotion', 'Background music', 'A long message'], a: 0 }
+];
+
+/* ---------------- state ---------------- */
+const qs = new URLSearchParams(location.search);
+let S = null;
+const skey = (c, t) => 'fof_' + c + '_' + t;
+function save() { if (S) try { localStorage.setItem(skey(S.code, S.team), JSON.stringify(S)); localStorage.setItem('fof_last', S.code + '|' + S.team); } catch (e) {} }
+function load(c, t) { try { return JSON.parse(localStorage.getItem(skey(c, t)) || 'null'); } catch (e) { return null; } }
+
+function setSync(st) {
+  const el = $('#sync'); el.classList.remove('hidden', 'sent', 'queued'); el.classList.add(st);
+  el.querySelector('span').textContent = st === 'sent' ? 'Results sent to the scoreboard' : 'Saved on this phone. Will send when online';
+}
+function report(data) { F.send(S.code, Object.assign({ team: S.team }, data), setSync); }
+
+function header() {
+  if (!S) { $('#hdr').innerHTML = ''; return; }
+  document.documentElement.style.setProperty('--team', F.TEAM_COLOR[S.team]);
+  $('#hdr').innerHTML = `<span class="pill">${S.team} · ${S.code}</span>`;
+}
+
+let tick = null;
+function go(view, arg) {
+  clearInterval(tick); tick = null;
+  window.scrollTo(0, 0);
+  header();
+  (VIEWS[view] || VIEWS.join)(arg);
+  if (S) { S.view = view; S.arg = arg == null ? null : arg; save(); }
+}
+
+/* ---------------- views ---------------- */
+const VIEWS = {};
+
+VIEWS.join = function () {
+  const pre = (qs.get('c') || '').toUpperCase();
+  app.innerHTML = `
+    <h1>Join your team</h1>
+    <p class="mute">Type the game code shown on the TV.</p>
+    <div class="card">
+      <input id="code" type="text" maxlength="4" autocomplete="off" placeholder="CODE" value="${esc(pre)}">
+      <p class="mute" style="margin-top:12px">Then tap your team:</p>
+      <div class="teams">${F.TEAMS.map(t => `<button data-t="${t}" style="background:${F.TEAM_COLOR[t]}">${t}</button>`).join('')}</div>
+      <p id="err" style="color:var(--bad)"></p>
+    </div>`;
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => join($('#code').value, b.dataset.t));
+};
+
+function join(code, team) {
+  const p = F.parseCode(code);
+  if (!p) { $('#err').textContent = 'Invalid code. It has 4 letters.'; F.sfx.bad(); return; }
+  S = load(p.code, team) || { code: p.code, team, draw: p.draw, results: {}, ans: {}, start: {}, final: null };
+  save();
+  if (!S.joined) { S.joined = true; report({ type: 'join' }); save(); }
+  F.sfx.ok();
+  go('hub');
+}
+
+function rounds() { return F.plan(S.draw)[S.team]; }
+function currentRound() { return rounds().findIndex(k => !S.results[k]); }
+
+VIEWS.hub = function () {
+  const r = rounds(), cur = currentRound();
+  const rows = r.map((k, i) => {
+    const res = S.results[k], st = F.STATIONS[k];
+    const cls = res ? (res.ok ? 'ok' : 'bad') : (i === cur ? 'now' : '');
+    const status = res ? (res.ok ? `Passed ${res.sc}/${st.of}` : `Not passed ${res.sc}/${st.of}`) : (i === cur ? 'Next' : 'Later');
+    return `<div class="round"><div class="badge ${cls}">${k}</div><div><b>Round ${i + 1} · Room ${st.room}</b><br><span class="mute">${st.test} · ${status}</span></div></div>`;
+  }).join('');
+  let action;
+  if (cur >= 0) {
+    const k = r[cur], st = F.STATIONS[k];
+    action = `<div class="card"><h2 style="margin-top:0">Go to Room ${st.room}</h2><p class="mute">Station ${k}: ${st.topic}. Tap the button only when your team is inside the room.</p><button id="go">We are in Room ${st.room}</button></div>`;
+  } else if (!S.final) {
+    action = `<div class="card"><h2 style="margin-top:0">Go back to Room ${F.FINAL_ROOM}</h2><p class="mute">Final challenge. Bring your clue words.</p><button id="go">We are in Room ${F.FINAL_ROOM}</button></div>`;
+  } else {
+    return go('done');
+  }
+  app.innerHTML = `<h1>Team ${S.team}</h1><p class="mute">Your route</p><div class="card">${rows}</div>${action}`;
+  $('#go').onclick = () => cur >= 0 ? go('intro', r[cur]) : go('final');
+};
+
+VIEWS.intro = function (k) {
+  if (S.start[k]) return go('station', k);
+  const d = DEF[k];
+  let n = 10;
+  app.innerHTML = `<div class="def"><div class="mute">Station ${k} · Room ${F.STATIONS[k].room}</div><div class="big">${d.word}</div><p style="font-size:19px">${d.text}</p><div class="count" id="n">10</div><div class="mute">The test starts automatically</div></div>`;
+  tick = setInterval(() => {
+    n--; $('#n').textContent = n; F.sfx.tap();
+    if (n <= 0) { S.start[k] = Date.now(); save(); go('station', k); }
+  }, 1000);
+};
+
+function timerBar(k, onEnd) {
+  const el = document.createElement('div');
+  el.className = 'timer';
+  el.innerHTML = `<div><b>Station ${k}</b><div class="mute" style="font-size:13px">${F.STATIONS[k].test} · pass with ${F.STATIONS[k].pass}/${F.STATIONS[k].of}</div></div><div class="t" id="tt">3:00</div>`;
+  app.prepend(el);
+  let warned = false;
+  const upd = () => {
+    const left = Math.max(0, F.STATION_SECONDS - Math.floor((Date.now() - S.start[k]) / 1000));
+    const t = $('#tt'); if (!t) return;
+    t.textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+    t.classList.toggle('low', left <= 30);
+    if (left <= 30 && !warned) { warned = true; F.buzz(200); }
+    if (left === 0) { clearInterval(tick); F.sfx.alarm(); F.buzz([300, 100, 300]); onEnd(); }
+  };
+  upd(); tick = setInterval(upd, 500);
+}
+
+VIEWS.station = function (k) {
+  if (S.results[k]) return go('result', k);
+  S.ans[k] = S.ans[k] || {};
+  ({ A: stationA, B: stationB, C: stationC })[k]();
+};
+
+function finish(k, sc) {
+  if (S.results[k]) return;
+  const st = F.STATIONS[k], ok = sc >= st.pass;
+  S.results[k] = { sc, ok }; save();
+  report({ type: 'station', st: k, sc, of: st.of, ok });
+  go('result', k);
+}
+
+function choiceRow(name, opts, cur) {
+  return `<div class="choices ${opts.length === 3 ? 'three' : ''}">${opts.map(([v, l]) => `<button data-n="${name}" data-v="${v}" class="${cur === v ? 'sel' : ''}">${l}</button>`).join('')}</div>`;
+}
+function bindChoices(store, onAll, total) {
+  app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
+    store[b.dataset.n] = b.dataset.v; save(); F.sfx.tap();
+    app.querySelectorAll(`[data-n="${b.dataset.n}"]`).forEach(x => x.classList.toggle('sel', x === b));
+    onAll(Object.keys(store).length >= total);
+  });
+}
+
+function stationA() {
+  const A = S.ans.A;
+  app.innerHTML = `<p class="mute" style="margin-top:12px">Listen to each clip. Is the voice <b>real</b> or made with <b>AI</b>?</p>` +
+    CLIPS.map((c, i) => `<div class="card"><b>Clip ${i + 1}</b><audio controls preload="none" src="${c.src}"></audio>${choiceRow(i, [['real', 'REAL'], ['ai', 'AI']], A[i])}</div>`).join('') +
+    `<button id="sub" ${Object.keys(A).length < 4 ? 'disabled' : ''}>Submit answers</button>`;
+  app.querySelectorAll('audio').forEach(a => a.onplay = () => app.querySelectorAll('audio').forEach(o => o !== a && o.pause()));
+  bindChoices(A, all => $('#sub').disabled = !all, 4);
+  const done = () => finish('A', CLIPS.filter((c, i) => A[i] === c.a).length);
+  $('#sub').onclick = done;
+  timerBar('A', done);
+}
+
+function stationB() {
+  const B = S.ans.B;
+  app.innerHTML = `<p class="mute" style="margin-top:12px">Your feed. Read who shares each post. Is it <b>Real</b>, <b>Misinformation</b> or <b>Disinformation</b>?</p>` +
+    POSTS.map((p, i) => `<div class="card post"><b>Post ${i + 1}</b><p>${esc(p.claim)}</p><img loading="lazy" src="${p.img}" alt="Post ${i + 1}"><div class="who">${esc(p.who)}</div>${choiceRow(i, [['real', 'Real'], ['mis', 'Misinfo'], ['dis', 'Disinfo']], B[i])}</div>`).join('') +
+    `<button id="sub" ${Object.keys(B).length < 6 ? 'disabled' : ''}>Submit answers</button>`;
+  bindChoices(B, all => $('#sub').disabled = !all, 6);
+  const done = () => finish('B', POSTS.filter((p, i) => B[i] === p.a).length);
+  $('#sub').onclick = done;
+  timerBar('B', done);
+}
+
+function stationC() {
+  const C = S.ans.C;
+  if (!C.seed) { C.seed = Math.floor(Math.random() * 1e9); C.cells = {}; save(); }
+  const X = F.makeCrossword(C.seed);
+  const cs = Math.max(22, Math.min(34, Math.floor((Math.min(window.innerWidth, 560) - 32) / X.cols) - 2));
+  const cellMap = {};
+  X.entries.forEach((e, ei) => {
+    for (let i = 0; i < e.word.length; i++) {
+      const r = e.r + (e.dir === 'D' ? i : 0), c = e.c + (e.dir === 'A' ? i : 0), key = r + ',' + c;
+      (cellMap[key] = cellMap[key] || { l: e.word[i], ents: [] }).ents.push(ei);
+    }
+  });
+  const nums = {}; X.entries.forEach(e => nums[e.r + ',' + e.c] = e.num);
+  let html = `<div class="cw"><div class="grid" style="--cs:${cs}px;grid-template-columns:repeat(${X.cols},${cs}px)">`;
+  for (let r = 0; r < X.rows; r++) for (let c = 0; c < X.cols; c++) {
+    const k = r + ',' + c;
+    html += cellMap[k] ? `<div class="cell on" data-k="${k}">${nums[k] ? `<span class="n">${nums[k]}</span>` : ''}<input maxlength="1" inputmode="text" autocomplete="off" autocapitalize="characters" value="${esc(C.cells[k] || '')}"></div>` : `<div class="cell"></div>`;
+  }
+  html += `</div></div><div class="clues card">` +
+    ['A', 'D'].map(d => `<b>${d === 'A' ? 'Across' : 'Down'}</b>` + X.entries.map((e, i) => e.dir === d ? `<div data-e="${i}">${e.num}. ${esc(e.clue)} <span class="mute">(${e.word.length})</span></div>` : '').join('')).join('') +
+    `</div><p class="mute" id="cnt"></p><button id="sub">Submit crossword</button>`;
+  app.innerHTML = `<p class="mute" style="margin-top:12px">Tap a clue or a square and type.</p>` + html;
+
+  let act = 0;
+  const cellsOf = ei => { const e = X.entries[ei]; return [...e.word].map((_, i) => (e.r + (e.dir === 'D' ? i : 0)) + ',' + (e.c + (e.dir === 'A' ? i : 0))); };
+  const inp = k => app.querySelector(`[data-k="${k}"] input`);
+  const solved = ei => cellsOf(ei).every(k => (C.cells[k] || '') === cellMap[k].l);
+  function paint(focusKey) {
+    app.querySelectorAll('.cell.on').forEach(el => el.classList.remove('hl', 'act', 'good'));
+    X.entries.forEach((e, i) => { if (solved(i)) cellsOf(i).forEach(k => app.querySelector(`[data-k="${k}"]`).classList.add('good')); });
+    cellsOf(act).forEach(k => app.querySelector(`[data-k="${k}"]`).classList.add('hl'));
+    if (focusKey) app.querySelector(`[data-k="${focusKey}"]`).classList.add('act');
+    app.querySelectorAll('[data-e]').forEach(el => { el.classList.toggle('act', +el.dataset.e === act); el.classList.toggle('done', solved(+el.dataset.e)); });
+    $('#cnt').textContent = X.entries.filter((_, i) => solved(i)).length + ' of 10 words complete';
+  }
+  app.querySelectorAll('.cell.on').forEach(el => {
+    const k = el.dataset.k, input = el.querySelector('input');
+    input.onfocus = () => { if (!cellMap[k].ents.includes(act)) act = cellMap[k].ents[0]; paint(k); };
+    input.onclick = () => { const en = cellMap[k].ents; if (en.length > 1 && document.activeElement === input && input.dataset.f) { act = en[(en.indexOf(act) + 1) % en.length]; paint(k); } input.dataset.f = 1; };
+    input.onblur = () => { delete input.dataset.f; };
+    input.oninput = () => {
+      const v = (input.value || '').toUpperCase().replace(/[^A-Z]/g, '').slice(-1);
+      input.value = v; C.cells[k] = v; save();
+      if (v) { const cs2 = cellsOf(act), i = cs2.indexOf(k); if (i >= 0 && i < cs2.length - 1) inp(cs2[i + 1]).focus(); }
+      const before = solved(act); paint(k); if (v && solved(act) && before === solved(act)) F.sfx.ok();
+    };
+    input.onkeydown = ev => {
+      if (ev.key === 'Backspace' && !input.value) { const cs2 = cellsOf(act), i = cs2.indexOf(k); if (i > 0) { ev.preventDefault(); const p = inp(cs2[i - 1]); p.value = ''; C.cells[cs2[i - 1]] = ''; save(); p.focus(); } }
+    };
+  });
+  app.querySelectorAll('[data-e]').forEach(el => el.onclick = () => {
+    act = +el.dataset.e; const ks = cellsOf(act); const first = ks.find(k => !C.cells[k]) || ks[0]; inp(first).focus();
+  });
+  paint();
+  const done = () => finish('C', X.entries.filter((_, i) => solved(i)).length);
+  $('#sub').onclick = () => { if (confirm('Submit the crossword now?')) done(); };
+  timerBar('C', done);
+}
+
+VIEWS.result = function (k) {
+  const st = F.STATIONS[k], r = S.results[k];
+  r.ok ? (F.sfx.win(), F.buzz([80, 60, 80])) : F.sfx.bad();
+  let rev = '';
+  if (k === 'A') rev = CLIPS.map((c, i) => { const g = S.ans.A[i] === c.a; return `<div class="verdict ${g ? 'ok' : 'bad'}"><b>Clip ${i + 1}: ${g ? 'Correct' : 'Wrong'}</b><br>${c.why}${c.video ? `<video controls preload="none" playsinline src="${c.video}"></video>` : ''}</div>`; }).join('');
+  if (k === 'B') rev = POSTS.map((p, i) => { const g = S.ans.B[i] === p.a; return `<div class="verdict ${g ? 'ok' : 'bad'}"><b>Post ${i + 1}: ${g ? 'Correct' : 'Wrong'}</b><br>${p.why}</div>`; }).join('');
+  app.innerHTML = `<div class="card result ${r.ok ? 'pass' : 'fail'}">
+      <div class="mute">Station ${k} · ${st.test}</div>
+      <div class="score">${r.sc}/${st.of}</div>
+      <h1>${r.ok ? 'PASSED!' : 'Not this time'}</h1>
+      <p>${r.ok ? 'Show this screen to your host and get your <b>clue word</b>. Remember it!' : 'No clue word here. At the final it will cost you a 60 s penalty.'}</p>
+    </div>${rev ? `<h2>Answers</h2>${rev}` : ''}<button id="next">Continue</button>`;
+  $('#next').onclick = () => go('hub');
+};
+
+VIEWS.final = function () {
+  S.fin = S.fin || { start: Date.now(), slots: ['', '', ''], q: {} };
+  if (!S.fin.start) S.fin.start = Date.now();
+  save();
+  const F2 = S.fin;
+  const fails = F.ST_KEYS.filter(k => S.results[k] && !S.results[k].ok);
+  const lockedWord = w => fails.some(k => F.STATIONS[k].clue === w);
+  app.innerHTML = `
+    <div class="timer"><div><b>Final challenge</b><div class="mute" style="font-size:13px">${fails.length ? `Penalty: +${fails.length * F.PENALTY_S} s` : 'No penalty'}</div></div><div class="t" id="tt">0:00</div></div>
+    <h2>1. Build the phrase</h2>
+    <p class="mute">Write your three clue words in the right order.${fails.length ? ' Missing words are shown in red with a penalty.' : ''}</p>
+    <div class="slots">${[0, 1, 2].map(i => `<input type="text" data-s="${i}" maxlength="8" autocomplete="off" value="${esc(F2.slots[i])}">`).join('')}</div>
+    ${fails.length ? `<p class="mute">Given words: ${fails.map(k => `<b style="color:var(--bad)">${F.STATIONS[k].clue}</b>`).join(', ')}</p>` : ''}
+    <h2>2. Quick questions</h2>
+    ${QUIZ.map((x, i) => `<div class="card"><b>${i + 1}. ${esc(x.q)}</b>${choiceRow('q' + i, x.o.map((o, j) => [String(j), esc(o)]), F2.q['q' + i])}</div>`).join('')}
+    <button id="sub" disabled>Submit final</button>`;
+  app.querySelectorAll('.choices button').forEach(b => { b.style.fontSize = '13px'; });
+  const check = () => { $('#sub').disabled = !(F2.slots.every(s => s.trim()) && Object.keys(F2.q).length === QUIZ.length); };
+  app.querySelectorAll('[data-s]').forEach(el => el.oninput = () => { F2.slots[+el.dataset.s] = el.value.toUpperCase().trim(); save(); check(); });
+  bindChoices(F2.q, check, QUIZ.length);
+  check();
+  const upd = () => { const s = Math.floor((Date.now() - F2.start) / 1000); $('#tt').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  upd(); tick = setInterval(upd, 500);
+  $('#sub').onclick = () => {
+    const phrase = F2.slots.map(s => s.toUpperCase().trim()).join(' ') === F.PHRASE.join(' ');
+    const q = QUIZ.filter((x, i) => +F2.q['q' + i] === x.a).length;
+    const secs = Math.floor((Date.now() - F2.start) / 1000) + fails.length * F.PENALTY_S;
+    S.final = { phrase, q, secs, fails: fails.length }; save();
+    report({ type: 'final', phrase, q, secs, fails: fails.length });
+    go('done');
+  };
+};
+
+function points() {
+  const st = F.ST_KEYS.reduce((a, k) => a + (S.results[k] && S.results[k].ok ? 10 : 0), 0);
+  return st + (S.final ? (S.final.phrase ? 10 : 0) + S.final.q * 2 : 0);
+}
+
+VIEWS.done = function () {
+  F.sfx.win();
+  const f = S.final;
+  app.innerHTML = `<div class="card result pass"><div class="mute">Team ${S.team}</div><div class="score">${points()}</div><div class="mute">points out of 50</div>
+    <h1>Mission complete</h1>
+    <p>Phrase: <b>${f.phrase ? 'correct' : 'wrong'}</b> · Questions: <b>${f.q}/5</b> · Time: <b>${f.secs} s</b></p>
+    <p class="mute">Look at the TV for the final ranking.</p></div>
+    <div class="card" style="text-align:center"><b style="font-size:22px">THINK · VERIFY · SHARE</b><p class="mute">Before you share, stop and check.</p></div>`;
+};
+
+/* ---------------- boot ---------------- */
+(function boot() {
+  F.flush(setSync);
+  const c = F.parseCode(qs.get('c')), t = (qs.get('t') || '').toUpperCase();
+  if (c && F.TEAMS.includes(t)) return join(c.code, t);
+  const last = (localStorage.getItem('fof_last') || '').split('|');
+  if (last.length === 2 && !qs.get('c')) {
+    const s = load(last[0], last[1]);
+    if (s) { S = s; return go(S.view || 'hub', S.arg); }
+  }
+  go('join');
+})();
+</script>
+</body>
+</html>
