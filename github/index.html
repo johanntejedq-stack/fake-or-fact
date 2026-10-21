@@ -363,13 +363,11 @@ VIEWS.final = function () {
   save();
   const F2 = S.fin;
   const fails = F.ST_KEYS.filter(k => S.results[k] && !S.results[k].ok);
-  const lockedWord = w => fails.some(k => F.STATIONS[k].clue === w);
   app.innerHTML = `
     <div class="timer"><div><b>Final challenge</b><div class="mute" style="font-size:13px">${fails.length ? `Penalty: +${fails.length * F.PENALTY_S} s` : 'No penalty'}</div></div><div class="t" id="tt">0:00</div></div>
     <h2>1. Build the phrase</h2>
-    <p class="mute">Write your three clue words in the right order.${fails.length ? ' Missing words are shown in red with a penalty.' : ''}</p>
+    <p class="mute">Write your three clue words in the right order.${fails.length ? ' Missing a word? Ask the game master. Each one costs 60 s.' : ''}</p>
     <div class="slots">${[0, 1, 2].map(i => `<input type="text" data-s="${i}" maxlength="8" autocomplete="off" value="${esc(F2.slots[i])}">`).join('')}</div>
-    ${fails.length ? `<p class="mute">Given words: ${fails.map(k => `<b style="color:var(--bad)">${F.STATIONS[k].clue}</b>`).join(', ')}</p>` : ''}
     <h2>2. Quick questions</h2>
     ${QUIZ.map((x, i) => `<div class="card"><b>${i + 1}. ${esc(x.q)}</b>${choiceRow('q' + i, x.o.map((o, j) => [String(j), esc(o)]), F2.q['q' + i])}</div>`).join('')}
     <button id="sub" disabled>Submit final</button>`;
@@ -402,7 +400,7 @@ VIEWS.done = function () {
     <h1>Mission complete</h1>
     <p>Phrase: <b>${f.phrase ? 'correct' : 'wrong'}</b> · Questions: <b>${f.q}/5</b> · Time: <b>${f.secs} s</b></p>
     <p class="mute">Look at the TV for the final ranking.</p></div>
-    <div class="card" style="text-align:center"><b style="font-size:22px">THINK · VERIFY · SHARE</b><p class="mute">Before you share, stop and check.</p></div>`;
+    <div class="card" style="text-align:center"><b style="font-size:22px">Before you share, stop and check.</b></div>`;
 };
 
 /* ---------------- boot ---------------- */
