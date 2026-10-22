@@ -5,9 +5,9 @@
   const TEAMS = ['RED', 'BLUE', 'GREEN'];
   const TEAM_COLOR = { RED: '#e5484d', BLUE: '#3e7bfa', GREEN: '#2fa36b' };
   const STATIONS = {
-    A: { room: '107D', topic: 'Deepfake', test: 'Real or AI?', clue: 'THINK', pass: 3, of: 4 },
-    B: { room: '205D', topic: 'Misinformation vs Disinformation', test: 'Fake Feed', clue: 'VERIFY', pass: 4, of: 6 },
-    C: { room: '303D', topic: 'Vocabulary', test: 'Crossword', clue: 'SHARE', pass: 7, of: 10 }
+    A: { room: '409E', topic: 'Deepfake', test: 'Real or AI?', clue: 'THINK', pass: 3, of: 4 },
+    B: { room: '306E', topic: 'Misinformation vs Disinformation', test: 'Fake Feed', clue: 'VERIFY', pass: 4, of: 6 },
+    C: { room: '504E', topic: 'Vocabulary', test: 'Crossword', clue: 'SHARE', pass: 7, of: 10 }
   };
   const ST_KEYS = ['A', 'B', 'C'];
   const FINAL_ROOM = '405E';
